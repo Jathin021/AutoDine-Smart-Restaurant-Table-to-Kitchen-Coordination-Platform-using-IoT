@@ -9,4 +9,5 @@ idf_component_register(
         log
         freertos
         driver
+        json
 )
