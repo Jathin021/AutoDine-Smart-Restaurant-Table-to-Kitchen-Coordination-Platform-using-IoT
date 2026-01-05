@@ -1,10 +1,7 @@
-==============================================
             A U T O D I N E
-==============================================
-Smart Restaurant Table-to-Kitchen Coordination
-            Platform using IoT
-==============================================
 
+Smart Restaurant Table to Kitchen Coordination
+Platform using IoT
 
 >> ABOUT
 ---------------------------------------------------------------
