@@ -1,118 +1,128 @@
-            A U T O D I N E
-
+A U T O D I N E
+══════════════════════════════════════════════
 Smart Restaurant Table to Kitchen Coordination
 Platform using IoT
+══════════════════════════════════════════════
 
->> ABOUT
----------------------------------------------------------------
-AutoDine is an ESP32-based IoT platform that enables autonomous
-table-side food ordering and real-time coordination between
-restaurant tables and the kitchen.
+PROJECT OVERVIEW
+══════════════════════════════════════════════
+AutoDine is an ESP32 based IoT platform designed to enable
+autonomous table side food ordering and efficient coordination
+between restaurant tables and the kitchen.
 
-Customers place orders directly from a table-mounted embedded
-unit, while kitchen staff monitor and manage orders through a
-browser-based interface hosted on an ESP32.
+The system eliminates manual order taking by allowing customers
+to place orders directly from a table mounted embedded unit.
+Kitchen staff receive and manage orders through a browser based
+interface hosted on an ESP32.
 
-
->> SYSTEM OVERVIEW
----------------------------------------------------------------
-AutoDine follows a distributed embedded architecture using
-two ESP32 nodes connected over Wi-Fi.
-
-[ TABLE UNIT - ESP32 ]
-  - OLED display for menu and status
-  - Push buttons for item selection
-  - Sends orders wirelessly
-
-[ HOST UNIT - ESP32 ]
-  - Embedded web server
-  - Kitchen coordination dashboard
-  - Sends order status updates
+The project demonstrates how embedded systems and IoT can be
+used to modernize traditional restaurant service workflows in a
+cost effective and scalable manner.
 
 
->> KEY FEATURES
----------------------------------------------------------------
- [+] Autonomous table-side ordering
- [+] Dual ESP32 distributed architecture
- [+] OLED-based menu and order status display
- [+] Button-driven user interaction
- [+] Wi-Fi enabled IoT communication
- [+] Embedded web dashboard
- [+] Real-time table-to-kitchen coordination
- [+] Modular and scalable design
+SYSTEM ARCHITECTURE
+══════════════════════════════════════════════
+AutoDine uses a distributed embedded architecture with two
+ESP32 nodes connected over WiFi.
+
+TABLE UNIT ESP32
+• OLED display for menu and order status
+• Push buttons for item selection
+• Sends order data wirelessly
+
+HOST UNIT ESP32
+• Embedded web server
+• Kitchen coordination dashboard
+• Sends order status updates to table unit
 
 
->> SYSTEM ARCHITECTURE
----------------------------------------------------------------
-+--------------------+        Wi-Fi        +--------------------+
-|   TABLE ESP32      |  --------------->  |    HOST ESP32      |
-|  OLED + Buttons    |                    |  Web Server        |
-+--------------------+                    +--------------------+
-                                                  |
-                                                  |
-                                            Browser Access
+FEATURES
+══════════════════════════════════════════════
+• Autonomous table side food ordering
+• Dual ESP32 distributed architecture
+• OLED based menu and order status display
+• Button driven customer interaction
+• WiFi enabled IoT communication
+• Embedded web dashboard for kitchen staff
+• Real time table to kitchen coordination
+• Modular and scalable design
 
 
->> REPOSITORY STRUCTURE
----------------------------------------------------------------
-/Restaurant_Menu
-  -> Table-side ESP32 firmware
-
-/Restaurant_Host
-  -> Kitchen-side ESP32 web server firmware
-
-/Demo_V1.0.mp4
-  -> Working prototype demonstration
-
-/README
-  -> Project documentation
+WORKING PRINCIPLE
+══════════════════════════════════════════════
+1. Menu is displayed on the OLED screen at the table
+2. Customer selects food items using push buttons
+3. Order details are sent via WiFi to the host ESP32
+4. Host ESP32 displays the order on kitchen web dashboard
+5. Kitchen staff update order status through browser
+6. Updated status is sent back to the table ESP32
+7. Customer sees live order status on OLED display
 
 
->> WORKING FLOW
----------------------------------------------------------------
- 1) Menu displayed on OLED screen
- 2) Customer selects items using buttons
- 3) Order sent to host ESP32 via Wi-Fi
- 4) Kitchen views order on web dashboard
- 5) Order status updated by kitchen
- 6) Status reflected back on table OLED
+TECHNOLOGIES USED
+══════════════════════════════════════════════
+Hardware
+• ESP32 DevKit V1
+• SSD1306 OLED Display
+• Push Buttons
+
+Firmware
+• ESP IDF
+• Embedded C
+
+Communication
+• WiFi
+• HTTP
+• JSON
+
+Interface
+• Embedded Web Server using HTML and CSS
 
 
->> TECHNOLOGIES USED
----------------------------------------------------------------
- Hardware      : ESP32 DevKit V1, SSD1306 OLED, Push Buttons
- Firmware      : ESP-IDF (Embedded C)
- Communication : Wi-Fi, HTTP, JSON
- Interface     : Embedded Web Server (HTML/CSS)
+REPOSITORY STRUCTURE
+══════════════════════════════════════════════
+Restaurant_Menu
+Contains firmware for table side ESP32
+
+Restaurant_Host
+Contains firmware for host ESP32 web server
+
+Demo_V1.0.mp4
+Working prototype demonstration video
+
+README
+Project documentation file
 
 
->> APPLICATIONS
----------------------------------------------------------------
- - Smart restaurants and cafés
- - Self-ordering dining systems
- - Embedded IoT demonstrations
- - Academic & final-year projects
+APPLICATIONS
+══════════════════════════════════════════════
+• Smart restaurants and cafes
+• Self ordering dining environments
+• Embedded IoT demonstrations
+• Academic and final year engineering projects
 
 
->> FUTURE ENHANCEMENTS
----------------------------------------------------------------
- [ ] Touchscreen-based ordering interface
- [ ] Multi-table scalability
- [ ] Cloud connectivity and analytics
- [ ] Mobile application integration
+FUTURE ENHANCEMENTS
+══════════════════════════════════════════════
+• Touchscreen based menu interface
+• Multi table support with unique table IDs
+• Cloud integration for monitoring and analytics
+• Mobile application support
+• Payment and billing integration optional
 
 
->> LICENSE
----------------------------------------------------------------
- Open-source project for educational and research use
+LICENSE
+══════════════════════════════════════════════
+This project is open source and intended for
+educational and research purposes.
 
 
->> AUTHOR NOTE
----------------------------------------------------------------
- AutoDine is developed as an embedded IoT learning project
- demonstrating real-world table-to-kitchen coordination
- using ESP32 and ESP-IDF.
+AUTHOR NOTE
+══════════════════════════════════════════════
+AutoDine is developed as an embedded IoT learning
+project demonstrating real world table to kitchen
+coordination using ESP32 and ESP IDF.
 
-===============================================================
- END OF README
-===============================================================
+══════════════════════════════════════════════
+END OF README
+══════════════════════════════════════════════
