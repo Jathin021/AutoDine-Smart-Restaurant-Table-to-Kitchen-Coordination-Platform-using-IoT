@@ -3,12 +3,9 @@ A U T O D I N E
 ══════════════════════════════════════════════
 
 Smart Restaurant Table to Kitchen Coordination
-
 Platform using IoT
 
 ══════════════════════════════════════════════
-
-
 
 PROJECT DESCRIPTION
 
@@ -230,11 +227,7 @@ TECHNOLOGIES USED
 
         • ESP32 DevKit V1
 
-
-
         • SSD1306 OLED Display
-
-
 
         • Push Buttons
 
@@ -246,8 +239,6 @@ TECHNOLOGIES USED
 
         • ESP IDF
 
-
-
         • Embedded C
 
 
@@ -258,11 +249,7 @@ TECHNOLOGIES USED
 
         • WiFi
 
-
-
         • HTTP
-
-
 
         • JSON
 
@@ -274,8 +261,6 @@ TECHNOLOGIES USED
 
         • Embedded Web Server
 
-
-
         • Browser based dashboard
 
 
@@ -286,15 +271,9 @@ APPLICATIONS
 
     • Smart restaurants and cafes
 
-
-
     • Self ordering dining systems
 
-
-
     • Embedded IoT demonstrations
-
-
 
     • Academic and final year projects
 
@@ -306,22 +285,13 @@ FUTURE SCOPE
 
     • Touchscreen based menu interface
 
-
-
     • Multiple table support
-
-
 
     • Cloud connectivity for analytics
 
-
-
     • Mobile application integration
 
-
-
     • Payment and billing extension
-
 
 
 PROJECT STATUS
