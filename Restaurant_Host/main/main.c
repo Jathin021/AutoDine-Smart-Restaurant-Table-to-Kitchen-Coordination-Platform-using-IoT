@@ -8,7 +8,6 @@
 #include "nvs_flash.h"
 #include "esp_http_server.h"
 #include "cJSON.h"
-
 #define TAG "HOST_SERVER"
 
 /* WiFi Configuration */
