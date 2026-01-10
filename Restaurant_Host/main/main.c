@@ -9,7 +9,6 @@
 #include "esp_http_server.h"
 #include "cJSON.h"
 #define TAG "HOST_SERVER"
-
 /* WiFi Configuration */
 #define WIFI_SSID      "Restaurant_WiFi"
 #define WIFI_PASS      "restaurant123"
