@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutoDine - Chef Dashboard</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🍽️ AutoDine - Chef Dashboard</h1>
+            <div class="status-bar">
+                <span class="status-indicator" id="connection-status">● Connected</span>
+                <span class="time" id="current-time">--:--</span>
+            </div>
+        </header>
+
+        <main>
+            <div class="tables-grid" id="tables-container">
+                <!-- Table cards will be dynamically inserted here -->
+            </div>
+        </main>
+
+        <footer>
+            <p>AutoDine Host System v1.0 | ESP32 IoT Platform</p>
+        </footer>
+    </div>
+
+    <!-- Modal for order details -->
+    <div id="order-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2 id="modal-title">Order Details</h2>
+            <div id="modal-body"></div>
+            <div class="modal-actions" id="modal-actions"></div>
+        </div>
+    </div>
+
+    <script src="/app.js"></script>
+</body>
+</html>

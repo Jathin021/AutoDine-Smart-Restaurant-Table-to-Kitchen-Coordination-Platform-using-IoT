@@ -1,0 +1,355 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    overflow: hidden;
+}
+
+header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 30px;
+    text-align: center;
+}
+
+header h1 {
+    font-size: 2.5rem;
+    margin-bottom: 15px;
+}
+
+.status-bar {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    font-size: 1rem;
+}
+
+.status-indicator {
+    padding: 8px 16px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 20px;
+    font-weight: 600;
+}
+
+main {
+    padding: 40px;
+}
+
+.tables-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 30px;
+}
+
+.table-card {
+    background: white;
+    border-radius: 15px;
+    padding: 25px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    transition: transform 0.3s, box-shadow 0.3s;
+    border: 3px solid transparent;
+}
+
+.table-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+}
+
+.table-card.status-idle {
+    border-color: #4ade80;
+}
+
+.table-card.status-cooking {
+    border-color: #f87171;
+}
+
+.table-card.status-prepared {
+    border-color: #fb923c;
+}
+
+.table-card.status-billing {
+    border-color: #facc15;
+}
+
+.table-card.status-payment {
+    border-color: #a78bfa;
+}
+
+.table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.table-header h2 {
+    font-size: 1.8rem;
+    color: #333;
+}
+
+.status-badge {
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+}
+
+.status-badge.idle {
+    background: #4ade80;
+    color: white;
+}
+
+.status-badge.cooking {
+    background: #f87171;
+    color: white;
+}
+
+.status-badge.prepared {
+    background: #fb923c;
+    color: white;
+}
+
+.status-badge.billing {
+    background: #facc15;
+    color: #333;
+}
+
+.status-badge.payment {
+    background: #a78bfa;
+    color: white;
+}
+
+.order-info {
+    background: #f9fafb;
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+}
+
+.order-info h3 {
+    color: #555;
+    margin-bottom: 15px;
+    font-size: 1.1rem;
+}
+
+.order-items {
+    list-style: none;
+}
+
+.order-items li {
+    padding: 10px 0;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: space-between;
+    color: #666;
+}
+
+.order-items li:last-child {
+    border-bottom: none;
+}
+
+.order-total {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 2px solid #333;
+    font-weight: bold;
+    font-size: 1.2rem;
+    display: flex;
+    justify-content: space-between;
+    color: #333;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.btn {
+    flex: 1;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    min-width: 120px;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.btn-accept {
+    background: #4ade80;
+    color: white;
+}
+
+.btn-decline {
+    background: #f87171;
+    color: white;
+}
+
+.btn-prepared {
+    background: #fb923c;
+    color: white;
+}
+
+.btn-verify {
+    background: #a78bfa;
+    color: white;
+}
+
+.btn-view {
+    background: #60a5fa;
+    color: white;
+}
+
+.payment-info {
+    background: #fef3c7;
+    padding: 15px;
+    border-radius: 8px;
+    margin-top: 15px;
+    font-weight: 600;
+    text-align: center;
+}
+
+.no-order {
+    text-align: center;
+    color: #999;
+    font-style: italic;
+    padding: 30px;
+}
+
+footer {
+    background: #f9fafb;
+    padding: 20px;
+    text-align: center;
+    color: #666;
+    border-top: 1px solid #e5e7eb;
+}
+
+/* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.6);
+    animation: fadeIn 0.3s;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.modal-content {
+    background-color: white;
+    margin: 5% auto;
+    padding: 30px;
+    border-radius: 15px;
+    width: 90%;
+    max-width: 600px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    animation: slideDown 0.3s;
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: color 0.3s;
+}
+
+.close:hover {
+    color: #000;
+}
+
+.modal-actions {
+    margin-top: 25px;
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+}
+
+#modal-body {
+    margin-top: 20px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .tables-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    header h1 {
+        font-size: 1.8rem;
+    }
+    
+    .status-bar {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+    }
+    
+    .btn {
+        width: 100%;
+    }
+}
+
+/* Loading Animation */
+.loading {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+    font-size: 1.2rem;
+}
+
+.loading::after {
+    content: '...';
+    animation: dots 1.5s steps(4, end) infinite;
+}
+
+@keyframes dots {
+    0%, 20% { content: '.'; }
+    40% { content: '..'; }
+    60%, 100% { content: '...'; }
+}

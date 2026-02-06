@@ -1,0 +1,20 @@
+idf_component_register(
+    SRCS 
+        "main.c"
+        "wifi_ap.c"
+        "http_server.c"
+        "order_manager.c"
+        "buzzer.c"
+    INCLUDE_DIRS "."
+    EMBED_FILES
+        "web/index.html"
+        "web/style.css"
+        "web/app.js"
+    REQUIRES 
+        driver 
+        nvs_flash 
+        esp_wifi 
+        esp_http_server
+        json
+        esp_timer
+)
