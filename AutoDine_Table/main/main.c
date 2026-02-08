@@ -18,7 +18,8 @@ static const char *TAG = "MAIN";
 
 // Global State
 static state_context_t state_ctx;
-static cart_t current_cart;
+static cart_t accepted_cart;  // Items already accepted by chef
+static cart_t pending_cart;   // Items being added (in append mode or initial order)
 static char bill_json_buffer[2048] = {0};
 static bool network_ready = false;
 
@@ -54,7 +55,8 @@ void app_main(void) {
     
     // Initialize State Machine
     state_machine_init(&state_ctx);
-    cart_init(&current_cart);
+    cart_init(&accepted_cart);
+    cart_init(&pending_cart);
     
     // Show connecting screen
     oled_clear_buffer();
@@ -79,7 +81,7 @@ void app_main(void) {
     }
     
     // Show initial idle screen
-    ui_render_current_state(&state_ctx, &current_cart, bill_json_buffer);
+    ui_render_current_state(&state_ctx, state_ctx.append_mode ? &pending_cart : &accepted_cart, bill_json_buffer);
     
     uint32_t last_poll_time = 0;
     uint32_t last_render_time = 0;
@@ -148,8 +150,9 @@ void app_main(void) {
         if (state_ctx.current == STATE_ORDER_DECLINED &&
     time_in_state >= DISPLAY_MESSAGE_DURATION_MS) {
     state_machine_transition(&state_ctx, STATE_IDLE);
-    cart_init(&current_cart);
-    ui_render_current_state(&state_ctx, &current_cart, bill_json_buffer);
+    cart_init(&accepted_cart);
+    cart_init(&pending_cart);
+    ui_render_current_state(&state_ctx, &accepted_cart, bill_json_buffer);
 }
 
 // ✅ ADD NEW CASE for append-mode decline
@@ -158,16 +161,17 @@ if (state_ctx.current == STATE_ORDER_DECLINED_APPEND &&
     // Return to FOOD_PREPARED, keep cart
     state_machine_transition(&state_ctx, STATE_FOOD_PREPARED);
     state_ctx.append_mode = false;  // Reset append mode
-    ui_render_current_state(&state_ctx, &current_cart, bill_json_buffer);
+    ui_render_current_state(&state_ctx, &accepted_cart, bill_json_buffer);
 }
 
         
         if (state_ctx.current == STATE_THANK_YOU && 
             time_in_state >= DISPLAY_MESSAGE_DURATION_MS) {
             state_machine_transition(&state_ctx, STATE_IDLE);
-            cart_init(&current_cart);
+            cart_init(&accepted_cart);
+            cart_init(&pending_cart);
             memset(bill_json_buffer, 0, sizeof(bill_json_buffer));
-            ui_render_current_state(&state_ctx, &current_cart, bill_json_buffer);
+            ui_render_current_state(&state_ctx, &accepted_cart, bill_json_buffer);
         }
         
         // Re-render periodically (for blinking effects, etc.)
@@ -188,7 +192,8 @@ static void handle_state_idle(button_event_t btn) {
     if (btn == BTN_EVENT_ANY_PRESSED) {
         state_machine_transition(&state_ctx, STATE_MENU_BROWSE);
         state_ctx.menu_index = 0;
-        ui_render_current_state(&state_ctx, &current_cart, bill_json_buffer);
+        state_ctx.append_mode = false;
+        ui_render_current_state(&state_ctx, &pending_cart, bill_json_buffer);
     }
 }
 
@@ -210,17 +215,17 @@ static void handle_state_menu_browse(button_event_t btn) {
         state_ctx.quantity = 1;
         redraw = true;
     } else if (btn == BTN_EVENT_BACK_SHORT) {
-        if (!cart_is_empty(&current_cart)) {
-            // Send order
+        if (!cart_is_empty(&pending_cart)) {
+            // Send order (pending cart only)
             state_machine_transition(&state_ctx, STATE_WAITING_ORDER_ACCEPT);
-            ui_render_current_state(&state_ctx, &current_cart, bill_json_buffer);
+            ui_render_current_state(&state_ctx, &pending_cart, bill_json_buffer);
             
-            if (network_send_order(TABLE_ID, &current_cart, state_ctx.append_mode)) {
+            if (network_send_order(TABLE_ID, &pending_cart, state_ctx.append_mode)) {
                 ESP_LOGI(TAG, "Order sent successfully");
             } else {
                 ESP_LOGE(TAG, "Failed to send order");
                 state_machine_transition(&state_ctx, STATE_ORDER_DECLINED);
-                ui_render_current_state(&state_ctx, &current_cart, bill_json_buffer);
+                ui_render_current_state(&state_ctx, &pending_cart, bill_json_buffer);
             }
             return;
         } else {
@@ -236,26 +241,26 @@ static void handle_state_menu_browse(button_event_t btn) {
     }
 }
     if (redraw) {
-        ui_render_current_state(&state_ctx, &current_cart, bill_json_buffer);
+        ui_render_current_state(&state_ctx, state_ctx.append_mode ? &pending_cart : &accepted_cart, bill_json_buffer);
     }
 }
 
 static void handle_state_quantity_select(button_event_t btn) {
     bool redraw = false;
     
-    if (btn == BTN_EVENT_UP_SHORT) {
+    if (btn == BTN_EVENT_DOWN_SHORT) {
         if (state_ctx.quantity < 15) {
             state_ctx.quantity++;
             redraw = true;
         }
-    } else if (btn == BTN_EVENT_DOWN_SHORT) {
+    } else if (btn == BTN_EVENT_UP_SHORT) {
         if (state_ctx.quantity > 0) {
             state_ctx.quantity--;
             redraw = true;
         }
     } else if (btn == BTN_EVENT_OK_SHORT) {
         if (state_ctx.quantity > 0) {
-            cart_add_item(&current_cart, 
+            cart_add_item(&pending_cart, 
                          MENU_DATABASE[state_ctx.menu_index].item_id,
                          MENU_DATABASE[state_ctx.menu_index].name,
                          MENU_DATABASE[state_ctx.menu_index].price,
@@ -271,7 +276,7 @@ static void handle_state_quantity_select(button_event_t btn) {
     }
     
     if (redraw) {
-        ui_render_current_state(&state_ctx, &current_cart, bill_json_buffer);
+        ui_render_current_state(&state_ctx, &pending_cart, bill_json_buffer);
     }
 }
 
@@ -285,25 +290,27 @@ static void handle_state_order_declined(button_event_t btn) {
 
 static void handle_state_cooking(button_event_t btn) {
     if (btn == BTN_EVENT_OK_SHORT) {
-        // Add more items
+        // Add more items - use pending cart
         state_ctx.append_mode = true;
+        cart_init(&pending_cart);  // Clear pending cart for new items
         state_machine_transition(&state_ctx, STATE_MENU_BROWSE);
         state_ctx.menu_index = 0;
-        ui_render_current_state(&state_ctx, &current_cart, bill_json_buffer);
+        ui_render_current_state(&state_ctx, &pending_cart, bill_json_buffer);
     }
 }
 
 static void handle_state_food_prepared(button_event_t btn) {
     if (btn == BTN_EVENT_OK_SHORT) {
-        // Add more items
+        // Add more items - use pending cart
         state_ctx.append_mode = true;
+        cart_init(&pending_cart);  // Clear pending cart for new items
         state_machine_transition(&state_ctx, STATE_MENU_BROWSE);
         state_ctx.menu_index = 0;
-        ui_render_current_state(&state_ctx, &current_cart, bill_json_buffer);
+        ui_render_current_state(&state_ctx, &pending_cart, bill_json_buffer);
     } else if (btn == BTN_EVENT_BACK_SHORT) {
         // Request bill
         state_machine_transition(&state_ctx, STATE_WAITING_BILL);
-        ui_render_current_state(&state_ctx, &current_cart, bill_json_buffer);
+        ui_render_current_state(&state_ctx, &accepted_cart, bill_json_buffer);
         
         if (network_request_bill(TABLE_ID)) {
             ESP_LOGI(TAG, "Bill requested");
@@ -320,21 +327,14 @@ static void handle_state_waiting_bill(button_event_t btn) {
 static void handle_state_bill_display(button_event_t btn) {
     bool redraw = false;
     
-    if (btn == BTN_EVENT_UP_SHORT) {
-        if (state_ctx.bill_scroll_index > 0) {
-            state_ctx.bill_scroll_index--;
-            redraw = true;
-        }
-    } else if (btn == BTN_EVENT_DOWN_SHORT) {
-        state_ctx.bill_scroll_index++;
-        redraw = true;
-    } else if (btn == BTN_EVENT_OK_SHORT || btn == BTN_EVENT_BACK_SHORT) {
+    if (btn == BTN_EVENT_UP_SHORT || btn == BTN_EVENT_DOWN_SHORT || 
+        btn == BTN_EVENT_OK_SHORT || btn == BTN_EVENT_BACK_SHORT) {
         state_machine_transition(&state_ctx, STATE_PAYMENT_METHOD_SELECT);
         redraw = true;
     }
     
     if (redraw) {
-        ui_render_current_state(&state_ctx, &current_cart, bill_json_buffer);
+        ui_render_current_state(&state_ctx, &accepted_cart, bill_json_buffer);
     }
 }
 
@@ -343,11 +343,11 @@ static void handle_state_payment_method_select(button_event_t btn) {
     // ✅ FIX: Use Button-1 and Button-2 (assuming UP=1, DOWN=2)
     if (btn == BTN_EVENT_UP_SHORT) {  // Button-1 → UPI
         state_machine_transition(&state_ctx, STATE_PAYMENT_QR_UPI);
-        ui_render_current_state(&state_ctx, &current_cart, bill_json_buffer);
+        ui_render_current_state(&state_ctx, &accepted_cart, bill_json_buffer);
         network_send_payment_method(TABLE_ID, "upi");
     } else if (btn == BTN_EVENT_DOWN_SHORT) {  // Button-2 → Cash
         state_machine_transition(&state_ctx, STATE_PAYMENT_CASH);
-        ui_render_current_state(&state_ctx, &current_cart, bill_json_buffer);
+        ui_render_current_state(&state_ctx, &accepted_cart, bill_json_buffer);
         network_send_payment_method(TABLE_ID, "cash");
     }
 }
@@ -407,13 +407,18 @@ static void poll_server_status(void) {
         
         if (strcmp(order_state_str, "accepted") == 0) {
             ESP_LOGI(TAG, "Order ACCEPTED - transitioning to COOKING");
+            // Merge pending cart into accepted cart
+            cart_merge(&accepted_cart, &pending_cart);
+            cart_init(&pending_cart);  // Clear pending cart
             state_machine_transition(&state_ctx, STATE_COOKING);
             state_ctx.append_mode = false;
-            ui_render_current_state(&state_ctx, &current_cart, bill_json_buffer);
+            ui_render_current_state(&state_ctx, &accepted_cart, bill_json_buffer);
         } else if (strcmp(order_state_str, "declined") == 0) {
             ESP_LOGI(TAG, "Order DECLINED");
+            // Discard pending cart only, keep accepted cart
+            cart_init(&pending_cart);
             state_machine_transition(&state_ctx, STATE_ORDER_DECLINED);
-            ui_render_current_state(&state_ctx, &current_cart, bill_json_buffer);
+            ui_render_current_state(&state_ctx, &accepted_cart, bill_json_buffer);
         }
     }
     
@@ -423,7 +428,7 @@ static void poll_server_status(void) {
         if (strcmp(order_state_str, "prepared") == 0) {
             ESP_LOGI(TAG, "Food PREPARED");
             state_machine_transition(&state_ctx, STATE_FOOD_PREPARED);
-            ui_render_current_state(&state_ctx, &current_cart, bill_json_buffer);
+            ui_render_current_state(&state_ctx, &accepted_cart, bill_json_buffer);
         }
     }
     
@@ -433,7 +438,7 @@ static void poll_server_status(void) {
         strncpy(bill_json_buffer, bill_data->valuestring, sizeof(bill_json_buffer) - 1);
         state_machine_transition(&state_ctx, STATE_BILL_DISPLAY);
         state_ctx.bill_scroll_index = 0;
-        ui_render_current_state(&state_ctx, &current_cart, bill_json_buffer);
+        ui_render_current_state(&state_ctx, &accepted_cart, bill_json_buffer);
     }
     
     // Handle payment verification
@@ -443,7 +448,7 @@ static void poll_server_status(void) {
         if (strcmp(status_str, "idle") == 0) {
             ESP_LOGI(TAG, "Payment verified");
             state_machine_transition(&state_ctx, STATE_THANK_YOU);
-            ui_render_current_state(&state_ctx, &current_cart, bill_json_buffer);
+            ui_render_current_state(&state_ctx, &accepted_cart, bill_json_buffer);
         }
     }
     

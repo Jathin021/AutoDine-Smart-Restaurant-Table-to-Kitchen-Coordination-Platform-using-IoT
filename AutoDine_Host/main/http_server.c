@@ -83,15 +83,14 @@ static esp_err_t api_order_handler(httpd_req_t *req) {
         httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Order creation failed");
         return ESP_FAIL;
     }
-order_manager_accept_order(order_id);
-ESP_LOGI(TAG, "Order %d auto-accepted", order_id);
 
-buzzer_beep_order();
+    // Order remains PENDING - chef must explicitly accept/decline
+    buzzer_beep_order();
 
-const char *response = "{\"success\":true}";
-httpd_resp_set_type(req, "application/json");
-httpd_resp_send(req, response, strlen(response));
-return ESP_OK;
+    const char *response = "{\"success\":true}";
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_send(req, response, strlen(response));
+    return ESP_OK;
     
 }
 

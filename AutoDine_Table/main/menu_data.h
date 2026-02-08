@@ -62,6 +62,30 @@ static inline void cart_add_item(cart_t *cart, uint8_t item_id, const char *name
     cart->count++;
 }
 
+
+static inline void cart_merge(cart_t *accepted, const cart_t *pending) {
+    for (int i = 0; i < pending->count; i++) {
+        bool found = false;
+        // Check if item already exists in accepted cart
+        for (int j = 0; j < accepted->count; j++) {
+            if (accepted->items[j].item_id == pending->items[i].item_id) {
+                // Update quantity and total
+                accepted->items[j].quantity += pending->items[i].quantity;
+                accepted->total += pending->items[i].price * pending->items[i].quantity;
+                found = true;
+                break;
+            }
+        }
+        
+        // Add new item if not found and space available
+        if (!found && accepted->count < 20) {
+            accepted->items[accepted->count] = pending->items[i];
+            accepted->total += pending->items[i].price * pending->items[i].quantity;
+            accepted->count++;
+        }
+    }
+}
+
 static inline bool cart_is_empty(const cart_t *cart) {
     return (cart->count == 0);
 }

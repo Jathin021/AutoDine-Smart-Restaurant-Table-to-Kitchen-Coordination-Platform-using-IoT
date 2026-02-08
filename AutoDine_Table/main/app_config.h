@@ -4,8 +4,8 @@
 #include "driver/gpio.h"
 
 // TABLE IDENTITY
-#define TABLE_ID 1
-#define TABLE_NAME "Table-1"
+#define TABLE_ID 2
+#define TABLE_NAME "Table-2"
 
 // NETWORK
 #define WIFI_SSID "AutoDine_Host"

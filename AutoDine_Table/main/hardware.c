@@ -93,7 +93,7 @@ void oled_init(void) {
     oled_write_cmd(0xA1);
     oled_write_cmd(0xC8);
     oled_write_cmd(0xDA); oled_write_cmd(0x12);
-    oled_write_cmd(0x81); oled_write_cmd(0xCF);
+    oled_write_cmd(0x81); oled_write_cmd(0xFF);
     oled_write_cmd(0xD9); oled_write_cmd(0xF1);
     oled_write_cmd(0xDB); oled_write_cmd(0x40);
     oled_write_cmd(0xA4);
@@ -200,6 +200,11 @@ void oled_draw_rect(uint8_t x, uint8_t y, uint8_t w, uint8_t h, bool filled) {
             }
         }
     }
+}
+
+void oled_draw_bitmap(const unsigned char *bitmap) {
+    // Copy full 128x64 bitmap directly to OLED buffer
+    memcpy(oled_buffer, bitmap, sizeof(oled_buffer));
 }
 
 // Button State

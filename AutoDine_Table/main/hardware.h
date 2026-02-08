@@ -23,6 +23,7 @@ void oled_write_string(const char *str, uint8_t x, uint8_t y, bool large);
 void oled_write_centered(const char *str, uint8_t y, bool large);
 void oled_draw_hline(uint8_t x, uint8_t y, uint8_t w);
 void oled_draw_rect(uint8_t x, uint8_t y, uint8_t w, uint8_t h, bool filled);
+void oled_draw_bitmap(const unsigned char *bitmap);
 
 // Button Functions
 void buttons_init(void);
