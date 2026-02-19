@@ -232,7 +232,7 @@ void ui_display_bill(const char *bill_json, uint8_t scroll_index) {
     oled_write_string(line_buf, sub_x, 20, false);
     
     // GST (clear, left-aligned label, right-aligned value)
-    oled_write_string("GST 18%%", 8, 32, false);
+    oled_write_string("GST 18%", 8, 32, false);
     snprintf(line_buf, sizeof(line_buf), "Rs %d", gst_val);
     uint8_t gst_x = 120 - (strlen(line_buf) * 6);
     oled_write_string(line_buf, gst_x, 32, false);

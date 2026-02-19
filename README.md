@@ -1,4 +1,4 @@
-# AutoDine v3.0
+# AutoDine v3.5
 
 **Smart Restaurant Table-to-Kitchen Coordination Platform using IoT**
 
@@ -6,9 +6,9 @@
 
 ## 📋 Project Overview
 
-AutoDine is an ESP32-based IoT platform that enables autonomous table-side food ordering and real-time coordination between restaurant tables and the kitchen. The system reduces manual order-taking by allowing customers to place orders directly from table-mounted embedded units, while kitchen staff manages orders through a browser-based dashboard.
+AutoDine is an ESP32-based IoT platform that enables autonomous table-side food ordering and real-time coordination between restaurant tables and the kitchen. The system reduces manual order-taking by allowing customers to place orders directly from table-mounted embedded units, while kitchen staff manages orders through a browser-based dashboard. In v3.5, a **4-wheel chassis Waiter Robot** has been added to autonomously deliver food from the kitchen to the customer's table, completing the end-to-end automation loop.
 
-**Version:** 3.0  
+**Version:** 3.5  
 **Owner:** Jathin Pusuluri
 
 ---
@@ -29,12 +29,21 @@ AutoDine is an ESP32-based IoT platform that enables autonomous table-side food 
 - WiFi connectivity
 - Embedded web server
 
+**Waiter Robot (Arduino × 1)**
+- Arduino Uno / Mega
+- Adafruit Motor Shield (L293D)
+- 4× DC Motors on 4-wheel chassis
+- HC-SR04 Ultrasonic Sensor (obstacle avoidance)
+- HC-05 Bluetooth Module (command receiver)
+- Battery pack / power supply
+
 ### Software Stack
-- **Framework:** ESP-IDF v5.5.2
-- **Language:** C
-- **Communication:** WiFi, HTTP, JSON
+- **Framework:** ESP-IDF v5.5.2 (Table & Host), Arduino IDE (Waiter Robot)
+- **Language:** C (ESP32), C++ / Arduino (Waiter Robot)
+- **Communication:** WiFi, HTTP, JSON, Bluetooth Serial
 - **Display:** SSD1306 OLED driver
 - **Web Interface:** HTML, CSS, JavaScript
+- **Motor Control:** Adafruit Motor Shield library (AFMotor)
 
 ---
 
@@ -60,18 +69,30 @@ AutoDine is an ESP32-based IoT platform that enables autonomous table-side food 
 - ✅ Order completion workflow
 - ✅ Responsive web interface
 
+### Waiter Robot (Food Delivery)
+- ✅ 4-wheel chassis autonomous food delivery
+- ✅ Bluetooth command reception (HC-05)
+- ✅ Timed navigation to Table-1 (100cm) and Table-2 (150cm)
+- ✅ Ultrasonic obstacle detection & avoidance (HC-SR04)
+- ✅ Automatic pause/resume on obstacle
+- ✅ 10-second wait at table for food pickup
+- ✅ Calibrated forward/return durations
+- ✅ Auto-return to kitchen after delivery
+- ✅ State machine-driven navigation
+
 ### Technical Features
 - ✅ Dual cart system (pending + accepted orders)
-- ✅ State machine-based workflow
+- ✅ State machine-based workflow (Table, Host, and Waiter)
 - ✅ HTTP polling for status updates
 - ✅ JSON-based data exchange
+- ✅ Bluetooth serial communication (Waiter)
 - ✅ Modular and scalable architecture
 - ✅ OLED readability optimizations
 - ✅ Professional UI/UX design
 
 ---
 
-## 🔄 Complete Workflow (v3.0)
+## 🔄 Complete Workflow (v3.5)
 
 ### A. Initial Order Placement
 
@@ -104,13 +125,20 @@ AutoDine is an ESP32-based IoT platform that enables autonomous table-side food 
    - **ACCEPT** → Table notified, cooking begins
    - **DECLINE** → Table notified, order cancelled
 
-### C. Food Preparation
+### C. Food Preparation & Delivery
 
 7. **Cooking State**
    - OLED shows "Food is preparing in 10-15 min"
    - Button-3 available to add more items
 
-8. **Food Ready**
+8. **Waiter Robot Dispatch**
+   - Chef triggers delivery → Bluetooth command sent ('1' or '2' for target table)
+   - Robot moves forward on 4-wheel chassis toward the table
+   - Ultrasonic sensor monitors path; pauses if obstacle < 20cm, resumes when clear
+   - Robot arrives at table, waits 10 seconds for food pickup
+   - Robot auto-returns to kitchen with calibrated return timing
+
+9. **Food Ready**
    - Chef clicks "Food Prepared" button
    - OLED shows "Food is prepared! Enjoy meal"
    - Button-3: Add more items
@@ -118,27 +146,27 @@ AutoDine is an ESP32-based IoT platform that enables autonomous table-side food 
 
 ### D. Additional Orders (Optional)
 
-9. **Add More Items**
-   - Customer can add items after food is prepared
-   - New items go through same accept/decline flow
-   - Merged with existing order
+10. **Add More Items**
+    - Customer can add items after food is prepared
+    - New items go through same accept/decline flow
+    - Merged with existing order
 
 ### E. Billing & Payment
 
-10. **Bill Request**
+11. **Bill Request**
     - Customer presses Button-4 → Bill requested
     - Dashboard shows "Generate Bill" button
 
-11. **Bill Display**
+12. **Bill Display**
     - OLED shows: Subtotal, GST (18%), Total
     - Dashboard shows itemized bill with all details
     - Any button → Payment method selection
 
-12. **Payment Method**
+13. **Payment Method**
     - Button-1: UPI (shows QR code)
     - Button-2: Cash/Card (pay at counter)
 
-13. **Payment Completion**
+14. **Payment Completion**
     - Dashboard marks payment complete
     - OLED shows "Thank you! Visit again"
     - Table resets to idle
@@ -200,6 +228,36 @@ AutoDine is an ESP32-based IoT platform that enables autonomous table-side food 
    - Note the IP address from monitor output
    - Open browser: `http://<HOST_IP>`
 
+### Waiter Robot Setup
+
+1. **Install Adafruit Motor Shield Library**
+   - Extract `AutoDine_Waiter/Adafruit-Motor-Shield-library-master.zip` into Arduino `libraries/` folder
+
+2. **Open Sketch**
+   - Open `AutoDine_Waiter/main.ino` in Arduino IDE
+
+3. **Configure Table Distances** (in `main.ino`):
+   ```cpp
+   #define DURATION_TABLE1_FORWARD 5200    // Forward to Table-1 (100cm)
+   #define DURATION_TABLE1_RETURN  5600    // Return from Table-1
+   #define DURATION_TABLE2_FORWARD 7800    // Forward to Table-2 (150cm)
+   #define DURATION_TABLE2_RETURN  8200    // Return from Table-2
+   #define MOTOR_SPEED 180                 // Motor speed (0-255)
+   #define SAFE_DISTANCE 20                // Obstacle threshold in cm
+   ```
+
+4. **Upload**
+   - Select board (Arduino Uno/Mega) and port
+   - Upload sketch
+
+5. **Bluetooth Pairing**
+   - Pair HC-05 module with the host device
+   - Send '1' for Table-1 delivery, '2' for Table-2 delivery
+
+4. **Access Dashboard** (Host)
+   - Note the IP address from monitor output
+   - Open browser: `http://<HOST_IP>`
+
 ---
 
 ## 🔧 Hardware Connections
@@ -224,6 +282,19 @@ GPIO 23   →    Buzzer (+)
 GND       →    Buzzer (-)
 ```
 
+### Waiter Robot
+```
+Arduino        Component
+Motor Shield   →    4× DC Motors (M1, M2, M3, M4)
+A4 (TRIG)      →    HC-SR04 Trigger
+A5 (ECHO)      →    HC-SR04 Echo
+A2 (BT_RX)     →    HC-05 TX
+A3 (BT_TX)     →    HC-05 RX
+5V             →    HC-SR04 VCC, HC-05 VCC
+GND            →    HC-SR04 GND, HC-05 GND
+Vin/Ext        →    Motor Power Supply (6-12V)
+```
+
 ---
 
 ## 📱 Dashboard Features
@@ -233,7 +304,7 @@ GND       →    Buzzer (-)
 - **Bill Generation:** Professional itemized bills
 - **Payment Tracking:** UPI/Cash/Card status
 - **Responsive Design:** Works on desktop and mobile
-- **Footer:** "AutoDine Host System v3.0 | Owner Credits: Jathin Pusuluri"
+- **Footer:** "AutoDine Host System v3.5 | Owner Credits: Jathin Pusuluri"
 
 ---
 
@@ -258,11 +329,14 @@ GND       →    Buzzer (-)
 ## 🔑 Key Technical Decisions
 
 1. **Dual Cart System:** Separate pending and accepted carts prevent duplication
-2. **State Machine:** Clean workflow management across all states
+2. **State Machine:** Clean workflow management across all states (Table, Host, Waiter)
 3. **Polling Architecture:** Table units poll host for status updates
 4. **Button Remapping:** B2=Increase, B1=Decrease for intuitive quantity selection
 5. **Simplified Bill:** OLED shows totals only; dashboard shows full itemization
 6. **Yellow Region Handling:** QR code specifically positioned to avoid yellow area
+7. **Timed Navigation:** Waiter robot uses calibrated time-based movement instead of encoders for simplicity
+8. **Separate Return Duration:** Forward and return travel times are independently tuned to account for motor/surface differences
+9. **Obstacle Pause/Resume:** Elapsed time is tracked so obstacles don't affect total travel distance accuracy
 
 ---
 
@@ -270,7 +344,7 @@ GND       →    Buzzer (-)
 
 ```
 Major_Project/
-├── AutoDine_Table/          # Table unit firmware
+├── AutoDine_Table/          # Table unit firmware (ESP-IDF)
 │   ├── main/
 │   │   ├── main.c           # Main logic & state machine
 │   │   ├── hardware.c       # OLED & button drivers
@@ -280,7 +354,7 @@ Major_Project/
 │   │   └── app_config.h     # Configuration
 │   └── CMakeLists.txt
 │
-├── AutoDine_Host/           # Host unit firmware
+├── AutoDine_Host/           # Host unit firmware (ESP-IDF)
 │   ├── main/
 │   │   ├── main.c           # HTTP server & logic
 │   │   └── web/             # Dashboard files
@@ -288,6 +362,10 @@ Major_Project/
 │   │       ├── style.css
 │   │       └── app.js
 │   └── CMakeLists.txt
+│
+├── AutoDine_Waiter/         # Waiter Robot firmware (Arduino)
+│   ├── main.ino             # Robot state machine & motor control
+│   └── Adafruit-Motor-Shield-library-master.zip  # Motor library
 │
 └── README.md                # This file
 ```
@@ -318,6 +396,7 @@ To add more tables:
 
 ## 📊 Version History
 
+- **v3.5** - Waiter Robot: 4-wheel chassis autonomous food delivery with Bluetooth, obstacle avoidance
 - **v3.0** - Complete workflow with billing, payments, OLED optimizations
 - **v2.0** - Multi-table support, dashboard improvements
 - **v1.0** - Initial prototype with basic ordering
@@ -326,6 +405,8 @@ To add more tables:
 
 ## 🔮 Future Enhancements
 
+- Line-following / RFID-based precision navigation for waiter robot
+- ESP32-to-Arduino auto-dispatch (Host triggers robot delivery automatically)
 - Cloud analytics and reporting
 - Mobile app integration
 - Touchscreen interface
@@ -354,7 +435,9 @@ AutoDine is developed as an embedded IoT learning project focused on real-world 
 - ESP-IDF Framework
 - SSD1306 OLED Library
 - cJSON Library
+- Adafruit Motor Shield Library
+- Arduino IDE
 
 ---
 
-**AutoDine v3.0** - Deployment Ready ✅
+**AutoDine v3.5** - Deployment Ready ✅
