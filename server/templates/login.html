@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>AutoDine V4.0 — Login</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap');
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #0A0A0A;
+    }
+
+    @keyframes borderGlow {
+
+      0%,
+      100% {
+        box-shadow: 0 0 20px rgba(245, 158, 11, 0.15), 0 0 60px rgba(245, 158, 11, 0.05);
+      }
+
+      50% {
+        box-shadow: 0 0 40px rgba(245, 158, 11, 0.35), 0 0 80px rgba(245, 158, 11, 0.1);
+      }
+    }
+
+    @keyframes orbFloat {
+
+      0%,
+      100% {
+        transform: translateY(0) scale(1);
+        opacity: 0.12;
+      }
+
+      50% {
+        transform: translateY(-20px) scale(1.05);
+        opacity: 0.2;
+      }
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(16px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .card-glow {
+      animation: borderGlow 3s ease infinite;
+    }
+
+    .orb {
+      animation: orbFloat 6s ease-in-out infinite;
+    }
+
+    .orb2 {
+      animation: orbFloat 8s ease-in-out 2s infinite;
+    }
+
+    .anim-up {
+      animation: fadeUp 0.5s ease forwards;
+    }
+
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(0, 0, 0, 0.3);
+      border-top-color: #000;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      display: inline-block;
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+
+    input:-webkit-autofill {
+      -webkit-box-shadow: 0 0 0 1000px #0A0A0A inset !important;
+      -webkit-text-fill-color: #fff !important;
+    }
+
+    input:focus {
+      border-color: #F59E0B !important;
+      border-left-width: 3px !important;
+      outline: none;
+    }
+  </style>
+</head>
+
+<body class="min-h-screen flex items-center justify-center bg-[#0A0A0A]">
+
+  <!-- Animated background orbs -->
+  <div class="fixed inset-0 overflow-hidden pointer-events-none">
+    <div class="orb absolute top-1/4 left-1/4 w-80 h-80 bg-amber-500/15 rounded-full blur-3xl"></div>
+    <div class="orb2 absolute bottom-1/3 right-1/4 w-96 h-96 bg-amber-600/10 rounded-full blur-3xl"></div>
+    <div class="orb absolute top-2/3 left-1/2 w-64 h-64 bg-amber-400/8 rounded-full blur-3xl"></div>
+  </div>
+
+  <div class="relative z-10 w-full max-w-sm px-4 anim-up">
+    <!-- Logo -->
+    <div class="text-center mb-8">
+      <div
+        class="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-amber-500/10 border border-amber-500/30 mb-4"
+        style="box-shadow:0 0 40px rgba(245,158,11,0.25)">
+        <svg class="w-10 h-10 text-amber-400" fill="currentColor" viewBox="0 0 24 24">
+          <path
+            d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z" />
+        </svg>
+      </div>
+      <h1 class="text-3xl font-black text-amber-400 tracking-widest">AUTODINE</h1>
+      <div class="flex items-center justify-center gap-2 mt-1">
+        <span class="text-amber-400/60 text-sm font-medium tracking-wider">V4.0</span>
+        <span class="text-xs text-slate-600 border border-slate-700 px-2 py-0.5 rounded-full">IoT Dining</span>
+      </div>
+      <p class="text-slate-600 text-xs mt-1">{{ owner_name }}</p>
+    </div>
+
+    <!-- Card -->
+    <div class="card-glow bg-[#1E293B] rounded-2xl p-8 border border-slate-700/50">
+      <h2 class="text-white text-xl font-semibold mb-6 text-center">Staff Login</h2>
+
+      {% if error %}
+      <div class="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm text-center
+                animate-pulse">
+        ⚠ {{ error }}
+      </div>
+      {% endif %}
+
+      <form method="POST" action="/login" class="space-y-4" id="login-form" onsubmit="handleSubmit(event)">
+        <div>
+          <label class="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-1.5 block">Username</label>
+          <input id="username" name="username" type="text" autocomplete="username" class="w-full bg-[#0A0A0A] border border-slate-600 rounded-lg px-4 py-3 text-white
+                      placeholder-slate-700 transition-all duration-200" placeholder="Enter username" required>
+        </div>
+        <div>
+          <label class="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-1.5 block">Password</label>
+          <input id="password" name="password" type="password" autocomplete="current-password" class="w-full bg-[#0A0A0A] border border-slate-600 rounded-lg px-4 py-3 text-white
+                      placeholder-slate-700 transition-all duration-200" placeholder="••••••••" required>
+        </div>
+        <button id="login-btn" type="submit" class="w-full bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-black font-bold
+                     py-3 rounded-lg transition-all duration-200 mt-2 flex items-center justify-center
+                     disabled:opacity-60 disabled:cursor-not-allowed"
+          style="box-shadow:0 4px 20px rgba(245,158,11,0.3)">
+          <span id="btn-text">Sign In →</span>
+          <span id="btn-spinner" class="spinner hidden"></span>
+        </button>
+      </form>
+    </div>
+
+    <p class="text-center text-slate-700 text-xs mt-6">
+      AutoDine V4.0 · © Jathin Pusuluri
+    </p>
+  </div>
+
+  <script>
+    function handleSubmit(e) {
+      const btn = document.getElementById('login-btn');
+      const text = document.getElementById('btn-text');
+      const spin = document.getElementById('btn-spinner');
+      btn.disabled = true;
+      text.textContent = 'Signing in';
+      spin.classList.remove('hidden');
+    }
+    // Focus amber border effect via JS (Tailwind focus: variant can't do border-left-width dynamically)
+    document.querySelectorAll('input').forEach(el => {
+      el.addEventListener('focus', () => el.style.borderLeftWidth = '3px');
+      el.addEventListener('blur', () => el.style.borderLeftWidth = '1px');
+    });
+  </script>
+</body>
+
+</html>

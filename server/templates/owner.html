@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AutoDine V4.0 — Owner Dashboard</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+  body { font-family:'Inter',sans-serif; background:#0A0A0A; }
+  .card { background:#1E293B; border-radius:16px; border:1px solid rgba(255,255,255,0.05); }
+  .tab-content { display:none; }
+  .tab-content.active { display:block; }
+  .tab-content.active.grid-tab { display:grid; }
+  ::-webkit-scrollbar { width:4px; } ::-webkit-scrollbar-thumb { background:#334155; border-radius:2px; }
+
+  @keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes pulseLive { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .anim-up { animation: fadeUp 0.3s ease forwards; }
+  .pulse-live { animation: pulseLive 1.5s ease-in-out infinite; }
+</style>
+</head>
+<body class="text-white min-h-screen">
+
+<!-- Navbar -->
+<nav class="bg-[#1E293B] border-b border-slate-700/50 px-6 py-3 flex items-center justify-between sticky top-0 z-50">
+  <div class="flex items-center gap-3">
+    <span class="text-amber-400 font-black text-lg tracking-widest">AUTODINE</span>
+    <span class="text-slate-500 text-xs border border-slate-600 px-2 py-0.5 rounded">OWNER</span>
+  </div>
+  <div class="flex items-center gap-4">
+    <div id="live-pill" class="hidden items-center gap-1.5 bg-red-500/10 border border-red-500/30 px-3 py-1 rounded-full text-xs text-red-400 pulse-live">
+      <span class="w-1.5 h-1.5 rounded-full bg-red-400 inline-block"></span> Live Orders
+    </div>
+    <span class="text-slate-400 text-xs hidden sm:block">{{ owner_name }}</span>
+    <div class="w-8 h-8 rounded-full bg-amber-500 flex items-center justify-center text-black font-bold text-sm">
+      {{ owner_name|default('O')|first|upper }}
+    </div>
+    <a href="/logout" class="text-slate-500 hover:text-red-400 text-sm transition-colors">Logout</a>
+  </div>
+</nav>
+
+<!-- Tab bar (sticky) -->
+<div class="bg-[#0F172A] border-b border-slate-700/50 px-6 sticky top-[57px] z-40">
+  <div class="flex gap-1 overflow-x-auto no-scrollbar">
+    {% for tab, label in [('overview','📊 Overview'),('orders','📦 Orders'),('reports','📝 Reports'),('menu','🍽️ Menu'),('staff','👥 Staff'),('analytics','📈 Analytics'),('feedbacks','⭐ Feedbacks')] %}
+    <button id="tab-btn-{{tab}}" onclick="showTab('{{tab}}')"
+            class="tab-btn px-4 py-3.5 text-sm font-medium whitespace-nowrap border-b-2 border-transparent
+                   text-slate-400 hover:text-white transition-all duration-200
+                   data-[active=true]:border-amber-500 data-[active=true]:text-amber-400"
+            data-active="false">
+      {{label}}
+    </button>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="max-w-7xl mx-auto p-6">
+
+  <!-- ══ OVERVIEW ════════════════════════════════════════════ -->
+  <div id="tab-overview" class="tab-content active anim-up">
+    <!-- KPI cards -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      {% set kpis = [('kpi-orders','📦','Orders Today','0','text-amber-400'),
+                     ('kpi-revenue','💰','Revenue Today','₹0','text-green-400'),
+                     ('kpi-avg','📊','Avg Order','₹0','text-blue-400'),
+                     ('kpi-rating','⭐','Avg Rating','—','text-yellow-400')] %}
+      {% for id, icon, label, val, col in kpis %}
+      <div class="card p-5">
+        <div class="flex justify-between items-start mb-2">
+          <span class="text-2xl">{{icon}}</span>
+          <span class="text-slate-600 text-xs">--% ↑</span>
+        </div>
+        <div id="{{id}}" class="text-3xl font-bold {{col}} mb-1">{{val}}</div>
+        <div class="text-slate-500 text-xs">{{label}}</div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Revenue chart -->
+    <div class="card p-5 mb-6">
+      <h2 class="text-amber-400 font-semibold mb-4">Revenue — Last 7 Days</h2>
+      <canvas id="revenue-chart" height="90"></canvas>
+    </div>
+
+    <!-- Today paid orders quick view -->
+    <div class="card p-5">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-amber-400 font-semibold">📋 Today's Paid Orders</h2>
+        <label class="flex items-center gap-2 text-xs text-slate-400 cursor-pointer">
+          <input type="checkbox" id="show-all-cb" onchange="loadTodayOrders(this.checked)"
+                 class="accent-amber-500">
+          Show all statuses
+        </label>
+      </div>
+      <div id="paid-orders-list" class="space-y-2"></div>
+    </div>
+  </div>
+
+  <!-- ══ ORDERS ═════════════════════════════════════════════ -->
+  <div id="tab-orders" class="tab-content anim-up">
+    <div class="card p-5">
+      <h2 class="text-amber-400 font-semibold mb-4">Live Active Orders</h2>
+      <div id="active-orders-list" class="space-y-3"></div>
+    </div>
+  </div>
+
+  <!-- ══ REPORTS ════════════════════════════════════════════ -->
+  <div id="tab-reports" class="tab-content anim-up">
+    <div class="card p-5">
+      <div class="flex flex-wrap items-center gap-4 mb-5">
+        <div class="flex items-center gap-3 bg-[#0A0A0A] border border-slate-700 rounded-xl px-4 py-2">
+          <span class="text-slate-400 text-sm">📅</span>
+          <input type="date" id="report-date"
+                 class="bg-transparent text-white text-sm outline-none"
+                 onchange="loadReport()">
+        </div>
+        <button onclick="exportCSV()"
+                class="bg-amber-500 hover:bg-amber-400 text-black font-semibold text-sm
+                       px-5 py-2 rounded-xl transition-all">
+          ⬇ Export CSV
+        </button>
+      </div>
+      <div id="report-table" class="overflow-x-auto"></div>
+    </div>
+  </div>
+
+  <!-- ══ MENU MANAGEMENT ════════════════════════════════════ -->
+  <div id="tab-menu" class="tab-content anim-up">
+    <!-- Add/edit form -->
+    <div class="card p-5 mb-5">
+      <h2 class="text-amber-400 font-semibold mb-4" id="menu-form-title">+ Add Menu Item</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
+        <input type="hidden" id="edit-item-id">
+        <input id="item-name"     type="text"   placeholder="Name"       class="inp col-span-2">
+        <input id="item-desc"     type="text"   placeholder="Description" class="inp col-span-2">
+        <input id="item-price"    type="number" placeholder="Price (₹)"  class="inp">
+        <input id="item-category" type="text"   placeholder="Category"   class="inp">
+        <select id="item-veg" class="inp">
+          <option value="1">🟢 Veg</option>
+          <option value="0">🔴 Non-Veg</option>
+        </select>
+        <button onclick="saveMenuItem()"
+                class="col-span-2 bg-amber-500 hover:bg-amber-400 text-black font-bold
+                       py-2.5 rounded-xl text-sm transition-all">
+          Save Item
+        </button>
+        <button id="cancel-edit-btn" onclick="cancelEdit()"
+                class="hidden col-span-2 bg-slate-700 hover:bg-slate-600 text-white
+                       font-semibold py-2.5 rounded-xl text-sm transition-all">
+          Cancel
+        </button>
+      </div>
+    </div>
+
+    <!-- Search + category filters -->
+    <div class="flex flex-wrap gap-3 mb-4">
+      <input id="menu-search" type="text" placeholder="🔍 Search items..."
+             oninput="filterMenu()"
+             class="bg-[#1E293B] border border-slate-600 rounded-xl px-4 py-2 text-white
+                    text-sm outline-none focus:border-amber-500 transition-colors flex-1 min-w-[200px]">
+      <div id="cat-pills" class="flex gap-2 flex-wrap"></div>
+    </div>
+
+    <div class="card">
+      <div id="menu-list" class="divide-y divide-slate-700/50"></div>
+    </div>
+  </div>
+
+  <!-- ══ STAFF MANAGEMENT ═══════════════════════════════════ -->
+  <div id="tab-staff" class="tab-content anim-up">
+    <!-- Add form -->
+    <div class="card p-5 mb-5">
+      <h2 class="text-amber-400 font-semibold mb-4">Add Staff Member</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+        <input id="st-name"   type="text"   placeholder="Name"   class="inp">
+        <input id="st-role"   type="text"   placeholder="Role"   class="inp">
+        <input id="st-salary" type="number" placeholder="Salary" class="inp">
+        <button onclick="addStaff()"
+                class="bg-amber-500 hover:bg-amber-400 text-black font-bold
+                       py-2.5 rounded-xl text-sm transition-all">Add</button>
+      </div>
+    </div>
+    <div id="staff-total" class="text-slate-400 text-sm mb-3"></div>
+    <div class="card">
+      <div id="staff-list" class="divide-y divide-slate-700/50"></div>
+    </div>
+  </div>
+
+  <!-- ══ ANALYTICS (Bug fix: no hidden + grid conflict) ═════ -->
+  <div id="tab-analytics" class="tab-content anim-up">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- Revenue trend (line chart) -->
+      <div class="card p-5">
+        <h2 class="text-amber-400 font-semibold mb-4">Revenue Trend (7 Days)</h2>
+        <canvas id="analytics-revenue-chart" height="160"></canvas>
+      </div>
+      <!-- Feedback stars per day -->
+      <div class="card p-5">
+        <h2 class="text-amber-400 font-semibold mb-4">Feedback — Avg Stars / Day</h2>
+        <canvas id="feedback-chart" height="160"></canvas>
+      </div>
+      <!-- All-time stats -->
+      <div class="card p-5 lg:col-span-2 grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div class="text-center">
+          <div id="at-orders" class="text-3xl font-bold text-amber-400">—</div>
+          <div class="text-slate-500 text-xs mt-1">All-Time Orders</div>
+        </div>
+        <div class="text-center">
+          <div id="at-revenue" class="text-3xl font-bold text-green-400">—</div>
+          <div class="text-slate-500 text-xs mt-1">All-Time Revenue</div>
+        </div>
+        <div class="text-center">
+          <div id="at-rating" class="text-3xl font-bold text-yellow-400">—</div>
+          <div class="text-slate-500 text-xs mt-1">All-Time Avg ★</div>
+        </div>
+        <div class="text-center">
+          <div id="at-feedback" class="text-3xl font-bold text-blue-400">—</div>
+          <div class="text-slate-500 text-xs mt-1">Feedbacks</div>
+        </div>
+      </div>
+    </div>
+  </div><!-- ══ ANALYTICS end ══ -->
+
+  <!-- ══ FEEDBACKS (BUG 4) ══════════════════════════════════ -->
+  <div id="tab-feedbacks" class="tab-content anim-up"></div>
+
+</div><!-- /max-w -->
+
+<style>
+.inp {
+  background:#0A0A0A; border:1px solid #334155; border-radius:10px;
+  padding:10px 14px; color:#fff; font-size:14px; outline:none; transition:border-color 0.2s;
+}
+.inp:focus { border-color:#F59E0B; }
+.inp::placeholder { color:#475569; }
+</style>
+
+<script>
+/* ── Tab routing (Analytics Bug Fix) ──────────────────────── */
+const GRID_TABS = ['analytics'];  /* tabs that need display:grid */
+
+function showTab(name) {
+  document.querySelectorAll('.tab-content').forEach(el => {
+    el.classList.remove('active');
+    if (GRID_TABS.includes(el.id.replace('tab-',''))) {
+      el.style.display = 'none';
+    }
+  });
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    b.dataset.active = 'false';
+    b.classList.remove('border-amber-500','text-amber-400');
+    b.classList.add('border-transparent','text-slate-400');
+  });
+
+  const panel = document.getElementById('tab-' + name);
+  if (panel) {
+    panel.classList.add('active');
+    if (GRID_TABS.includes(name)) {
+      /* Analytics tab needs grid layout */
+      panel.style.display = 'grid';
+      panel.style.gridTemplateColumns = 'repeat(1, minmax(0, 1fr))';
+      /* Override to lg:grid-cols-2 via JS for large screens */
+      if (window.innerWidth >= 1024) {
+        panel.style.gridTemplateColumns = 'repeat(2, minmax(0, 1fr))';
+      }
+      panel.style.gap = '1.5rem';
+    } else {
+      panel.style.display = '';
+    }
+  }
+
+  const btn = document.getElementById('tab-btn-' + name);
+  if (btn) {
+    btn.dataset.active = 'true';
+    btn.classList.remove('border-transparent','text-slate-400');
+    btn.classList.add('border-amber-500','text-amber-400');
+  }
+
+  /* Lazy-load tab data */
+  if (name === 'overview')   { loadStats(); loadTodayOrders(false); loadRevenueChart(); }
+  if (name === 'orders')     { loadActiveOrders(); }
+  if (name === 'reports')    { document.getElementById('report-date').value = new Date().toISOString().slice(0,10); loadReport(); }
+  if (name === 'menu')       { loadMenuMgmt(); }
+  if (name === 'staff')      { loadStaff(); }
+  if (name === 'analytics')  { loadAnalytics(); }
+  if (name === 'feedbacks')  { loadFeedbacks(); }
+}
+showTab('overview');
+
+/* ── API Helper ───────────────────────────────────────────── */
+async function api(url, opts={}) {
+  try {
+    const r = await fetch(url, {credentials:'include', ...opts,
+      headers:{'Content-Type':'application/json',...(opts.headers||{})}});
+    return r.ok ? r.json() : null;
+  } catch { return null; }
+}
+
+/* ── Overview ─────────────────────────────────────────────── */
+async function loadStats() {
+  const st = await api('/api/owner/stats/today');
+  if (!st) return;
+  document.getElementById('kpi-orders').textContent  = st.orders;
+  document.getElementById('kpi-revenue').textContent = '₹' + st.revenue;
+  document.getElementById('kpi-avg').textContent     = '₹' + Math.round(st.avg_order||0);  /* BUG 3 fix */
+  document.getElementById('kpi-rating').textContent  = st.avg_rating > 0 ? st.avg_rating+'★' : '—';
+}
+
+let revenueChart;
+async function loadRevenueChart() {
+  const data = await api('/api/owner/analytics/revenue');
+  if (!data) return;
+  const ctx = document.getElementById('revenue-chart').getContext('2d');
+  const grad = ctx.createLinearGradient(0, 0, 0, 200);
+  grad.addColorStop(0, 'rgba(245,158,11,0.35)');
+  grad.addColorStop(1, 'rgba(245,158,11,0)');
+  if (revenueChart) revenueChart.destroy();
+  revenueChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: data.labels || [],
+      datasets: [{
+        label: 'Revenue (₹)',
+        data: data.values || [],
+        backgroundColor: grad,
+        borderColor: '#F59E0B',
+        borderWidth: 2,
+        borderRadius: 6,
+      }]
+    },
+    options: {
+      plugins: { legend:{display:false} },
+      scales: {
+        x: { grid:{color:'rgba(255,255,255,0.03)'}, ticks:{color:'#94A3B8',font:{size:11}} },
+        y: { grid:{color:'rgba(255,255,255,0.05)'}, ticks:{color:'#94A3B8',font:{size:11}},
+             beginAtZero:true }
+      }
+    }
+  });
+}
+
+async function loadTodayOrders(showAll) {
+  const today = new Date().toISOString().slice(0,10);
+  const orders = await api('/api/owner/orders/' + today);
+  if (!orders) return;
+  const list = document.getElementById('paid-orders-list');
+  const filtered = showAll ? orders : orders.filter(o => o.status === 'paid');
+  list.innerHTML = filtered.length === 0 ? '<p class="text-slate-600 text-sm">No orders found.</p>' : '';
+  filtered.forEach((o, idx) => {
+    const el = document.createElement('div');
+    el.className = 'rounded-xl px-4 py-3 cursor-pointer transition-colors ' +
+                   (idx%2===0?'bg-[#0A0A0A] hover:bg-[#111827]':'bg-[#0F172A] hover:bg-[#111827]');
+    const total = Math.floor((o.grand_total || 0));
+    el.innerHTML = `
+      <div class="flex items-center gap-3">
+        <span class="text-slate-400 font-mono text-sm">#${o.id}</span>
+        <span class="text-xs pill ${o.status==='paid'?'bg-green-500/20 text-green-400':'bg-amber-500/20 text-amber-400'}">${o.status}</span>
+        <span class="text-slate-400 text-sm">Table ${o.table_num}</span>
+        <span class="text-slate-600 text-xs">${(o.created_at||'').slice(11,16)}</span>
+        <span class="ml-auto text-green-400 font-mono font-semibold">₹${total}</span>
+        <button onclick="this.closest('.expandable').querySelector('.exp-body').classList.toggle('hidden');event.stopPropagation()"
+                class="text-slate-600 hover:text-slate-300 text-xs ml-1">▼</button>
+      </div>
+      <div class="exp-body hidden mt-2 text-xs text-slate-500 pl-8">
+        ${(o.items||[]).map(i=>`${i.item_name} ×${i.qty} — ₹${i.qty*i.price}`).join('<br>')}
+      </div>`;
+    el.classList.add('expandable');
+    list.appendChild(el);
+  });
+}
+
+/* ── Active Orders ────────────────────────────────────────── */
+async function loadActiveOrders() {
+  const data = await api('/api/order/chef-active');
+  const list = document.getElementById('active-orders-list');
+  if (!data || !data.order) {
+    list.innerHTML = '<p class="text-slate-600 text-sm">No active orders.</p>'; return;
+  }
+  const o = data.order;
+  list.innerHTML = `
+    <div class="bg-[#0A0A0A] rounded-xl p-4">
+      <div class="flex gap-3 items-center mb-3">
+        <span class="font-mono text-white">#${o.id}</span>
+        <span class="pill bg-amber-500/20 text-amber-400">${o.status}</span>
+        <span class="text-slate-400 text-sm ml-auto">Table ${o.table_num}</span>
+      </div>
+      ${(o.items||[]).map(i=>`<div class="text-sm text-slate-300 py-1">${i.item_name} ×${i.qty} — ₹${i.qty*i.price}</div>`).join('')}
+    </div>`;
+  /* Update live pill */
+  document.getElementById('live-pill').classList.remove('hidden');
+  document.getElementById('live-pill').classList.add('flex');
+}
+async function pollLive() {
+  const d = await api('/api/order/chef-active');
+  const pill = document.getElementById('live-pill');
+  if (d && d.order) { pill.classList.remove('hidden'); pill.classList.add('flex'); }
+  else              { pill.classList.add('hidden'); pill.classList.remove('flex'); }
+}
+setInterval(pollLive, 5000); pollLive();
+
+/* ── Reports ──────────────────────────────────────────────── */
+let reportData = [];
+async function loadReport() {
+  const d = document.getElementById('report-date').value;
+  const orders = await api('/api/owner/orders/' + d);
+  reportData = orders || [];
+  const div = document.getElementById('report-table');
+  if (!reportData.length) { div.innerHTML = '<p class="text-slate-600 text-sm">No orders on this date.</p>'; return; }
+  let html = `<table class="w-full text-sm">
+    <thead><tr class="text-slate-400 text-xs uppercase tracking-wider border-b border-slate-700">
+      <th class="text-left py-2">Order</th><th>Table</th><th>Status</th><th>Items</th><th class="text-right">Total</th>
+    </tr></thead><tbody class="divide-y divide-slate-700/30">`;
+  reportData.forEach(o => {
+    const total = Math.floor(o.grand_total || 0);
+    html += `<tr class="hover:bg-slate-700/20 transition-colors">
+      <td class="py-2 font-mono text-slate-300">#${o.id}</td>
+      <td class="text-center text-slate-400">${o.table_num}</td>
+      <td class="text-center"><span class="pill ${o.status==='paid'?'bg-green-500/20 text-green-400':'bg-amber-500/20 text-amber-400'}">${o.status}</span></td>
+      <td class="text-slate-500 text-xs max-w-[200px] truncate">${(o.items||[]).map(i=>i.item_name+'×'+i.qty).join(', ')}</td>
+      <td class="text-right text-green-400 font-mono font-semibold">₹${total}</td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  div.innerHTML = html;
+}
+
+function exportCSV() {
+  if (!reportData.length) { alert('No data to export.'); return; }
+  const date = document.getElementById('report-date').value;
+  let csv = 'Order ID,Table,Status,Items,Total\n';
+  reportData.forEach(o => {
+    const items = (o.items||[]).map(i=>i.item_name+'×'+i.qty).join(';');
+    csv += `${o.id},${o.table_num},${o.status},"${items}",${Math.floor(o.grand_total||0)}\n`;
+  });
+  const blob = new Blob([csv], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `autodine_report_${date}.csv`;
+  a.click();
+}
+
+/* ── Menu Management ──────────────────────────────────────── */
+let allMenuItems = [], activeCat = 'All';
+
+async function loadMenuMgmt() {
+  const items = await api('/api/menu');
+  if (!items) return;
+  allMenuItems = items;
+  const cats = ['All', ...new Set(items.map(i => i.category).filter(Boolean))];
+  const cpDiv = document.getElementById('cat-pills');
+  cpDiv.innerHTML = cats.map(c => `
+    <button onclick="setCat('${c}')"
+            class="cat-pill px-3 py-1 rounded-full text-xs font-semibold transition-all
+                   ${c===activeCat?'bg-amber-500 text-black':'bg-slate-700 text-slate-300 hover:bg-slate-600'}">
+      ${c}
+    </button>`).join('');
+  renderMenuList();
+}
+
+function setCat(cat) {
+  activeCat = cat;
+  loadMenuMgmt();
+}
+
+function filterMenu() {
+  renderMenuList();
+}
+
+function renderMenuList() {
+  const search = document.getElementById('menu-search').value.toLowerCase();
+  const list = document.getElementById('menu-list');
+  const filtered = allMenuItems.filter(it =>
+    (activeCat === 'All' || it.category === activeCat) &&
+    it.name.toLowerCase().includes(search)
+  );
+  list.innerHTML = filtered.length === 0 ? '<p class="text-slate-600 text-sm p-5">No items found.</p>' : '';
+  filtered.forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'flex items-center gap-3 px-5 py-3.5 hover:bg-slate-700/20 transition-colors';
+    div.innerHTML = `
+      <span class="w-2 h-2 rounded-full flex-shrink-0 ${item.is_veg?'bg-green-400':'bg-red-400'}"></span>
+      <span class="text-white font-medium flex-1 cursor-pointer hover:text-amber-400 transition-colors"
+            onclick="startEdit(${item.id})">${item.name}</span>
+      <span class="text-slate-500 text-xs hidden sm:block">${item.category||''}</span>
+      <span class="text-slate-400 text-sm">₹${item.price}</span>
+      <label class="relative inline-flex items-center cursor-pointer ml-2">
+        <input type="checkbox" class="sr-only peer" ${item.available?'checked':''}
+               onchange="toggleMenuAvail(${item.id},this.checked)">
+        <div class="w-9 h-5 bg-slate-600 rounded-full peer peer-checked:bg-amber-500
+                    after:content-[''] after:absolute after:top-[2px] after:left-[2px]
+                    after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all
+                    peer-checked:after:translate-x-full"></div>
+      </label>
+      <button onclick="deleteMenuItem(${item.id})"
+              class="text-red-400/50 hover:text-red-400 transition-colors ml-1 text-sm">✕</button>`;
+    list.appendChild(div);
+  });
+}
+
+function startEdit(id) {
+  const item = allMenuItems.find(i => i.id === id);
+  if (!item) return;
+  document.getElementById('edit-item-id').value      = item.id;
+  document.getElementById('item-name').value         = item.name;
+  document.getElementById('item-desc').value         = item.description || '';
+  document.getElementById('item-price').value        = item.price;
+  document.getElementById('item-category').value     = item.category || '';
+  document.getElementById('item-veg').value          = item.is_veg ? '1' : '0';
+  document.getElementById('menu-form-title').textContent = '✏ Edit: ' + item.name;
+  document.getElementById('cancel-edit-btn').classList.remove('hidden');
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function cancelEdit() {
+  document.getElementById('edit-item-id').value = '';
+  ['item-name','item-desc','item-price','item-category'].forEach(id =>
+    document.getElementById(id).value = '');
+  document.getElementById('item-veg').value = '1';
+  document.getElementById('menu-form-title').textContent = '+ Add Menu Item';
+  document.getElementById('cancel-edit-btn').classList.add('hidden');
+}
+
+async function saveMenuItem() {
+  const id    = document.getElementById('edit-item-id').value;
+  const body  = {
+    name:        document.getElementById('item-name').value,
+    description: document.getElementById('item-desc').value,
+    price:       +document.getElementById('item-price').value,
+    category:    document.getElementById('item-category').value,
+    is_veg:      document.getElementById('item-veg').value === '1' ? 1 : 0,
+    available:   1,
+  };
+  if (!body.name || !body.price) return;
+  if (id) {
+    await api('/api/owner/menu/' + id, {method:'PUT', body:JSON.stringify(body)});
+  } else {
+    await api('/api/owner/menu', {method:'POST', body:JSON.stringify(body)});
+  }
+  cancelEdit(); loadMenuMgmt();
+}
+
+async function deleteMenuItem(id) {
+  if (!confirm('Delete this item?')) return;
+  await api('/api/owner/menu/' + id, {method:'DELETE'});
+  loadMenuMgmt();
+}
+
+async function toggleMenuAvail(id, available) {
+  await api('/api/order/item-status', {method:'POST',
+    body: JSON.stringify({item_id: id, available: available ? 1 : 0})});
+}
+
+/* ── Staff Management ─────────────────────────────────────── */
+let staffData = [];
+async function loadStaff() {
+  const data = await api('/api/owner/staff');
+  if (!data) return;
+  staffData = data;
+  const list = document.getElementById('staff-list');
+  const totalSalary = data.reduce((s,e)=>s+(e.salary||0),0);
+  document.getElementById('staff-total').innerHTML =
+    `<span class="text-amber-400 font-semibold">Total Salary This Month: ₹${totalSalary}</span>
+     <span class="text-slate-600 text-xs ml-3">(${data.length} members)</span>`;
+  list.innerHTML = data.length === 0 ? '<p class="text-slate-600 text-sm p-5">No staff added.</p>' : '';
+  data.forEach((s, idx) => {
+    const div = document.createElement('div');
+    div.className = 'px-5 py-3.5 hover:bg-slate-700/20 transition-colors';
+    div.innerHTML = `
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-full bg-amber-500/20 text-amber-400 font-bold text-sm
+                    flex items-center justify-center flex-shrink-0">
+          ${s.name[0].toUpperCase()}
+        </div>
+        <span class="text-white font-medium flex-1">${s.name}</span>
+        <span class="text-slate-400 text-xs">${s.role||'—'}</span>
+        <span class="text-green-400 font-mono ml-2">₹${s.salary||0}</span>
+        <button onclick="paySalary(${s.id},'${s.name}')"
+                class="text-xs bg-green-500/10 hover:bg-green-500/20 text-green-400
+                       border border-green-500/30 px-3 py-1 rounded-lg transition-all ml-2">
+          Pay
+        </button>
+        <button onclick="removeStaff(${s.id})"
+                class="text-red-400/50 hover:text-red-400 transition-colors ml-2 text-sm">✕</button>
+      </div>`;
+    list.appendChild(div);
+  });
+}
+
+async function addStaff() {
+  const body = {
+    name:   document.getElementById('st-name').value,
+    role:   document.getElementById('st-role').value,
+    salary: +document.getElementById('st-salary').value,
+  };
+  if (!body.name) return;
+  await api('/api/owner/staff', {method:'POST', body:JSON.stringify(body)});
+  ['st-name','st-role','st-salary'].forEach(id => document.getElementById(id).value = '');
+  loadStaff();
+}
+
+async function removeStaff(id) {
+  if (!confirm('Remove staff member?')) return;
+  await api('/api/owner/staff/' + id, {method:'DELETE'});
+  loadStaff();
+}
+
+async function paySalary(id, name) {
+  if (!confirm(`Mark salary as paid for ${name}?`)) return;
+  await api('/api/owner/salary/' + id, {method:'POST', body:JSON.stringify({action:'pay'})});
+}
+
+/* ── Analytics ────────────────────────────────────────────── */
+let analyticsRevenueChart, feedbackChart;
+
+async function loadAnalytics() {
+  /* Revenue 7-day line chart */
+  const data = await api('/api/owner/analytics/revenue');
+  if (data) {
+    const ctx = document.getElementById('analytics-revenue-chart').getContext('2d');
+    const grad = ctx.createLinearGradient(0, 0, 0, 200);
+    grad.addColorStop(0, 'rgba(245,158,11,0.3)');
+    grad.addColorStop(1, 'rgba(245,158,11,0)');
+    if (analyticsRevenueChart) analyticsRevenueChart.destroy();
+    analyticsRevenueChart = new Chart(ctx, {
+      type:'line',
+      data:{
+        labels: data.labels||[],
+        datasets:[{
+          label:'Revenue (₹)',
+          data: data.values||[],
+          fill: true,
+          backgroundColor: grad,
+          borderColor:'#F59E0B',
+          borderWidth:2,
+          pointBackgroundColor:'#F59E0B',
+          tension:0.4,
+        }]
+      },
+      options:{
+        plugins:{legend:{display:false}},
+        scales:{
+          x:{grid:{color:'rgba(255,255,255,0.03)'},ticks:{color:'#94A3B8',font:{size:11}}},
+          y:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#94A3B8',font:{size:11}},beginAtZero:true}
+        }
+      }
+    });
+  }
+
+  /* Feedback stars chart */
+  const fb = await api('/api/owner/analytics/feedback');
+  if (fb) {
+    const ctx2 = document.getElementById('feedback-chart').getContext('2d');
+    if (feedbackChart) feedbackChart.destroy();
+    feedbackChart = new Chart(ctx2, {
+      type:'bar',
+      data:{
+        labels: fb.labels||[],
+        datasets:[{
+          label:'Avg Stars',
+          data: fb.values||[],
+          backgroundColor:'rgba(234,179,8,0.3)',
+          borderColor:'#EAB308',
+          borderWidth:2,
+          borderRadius:6,
+        }]
+      },
+      options:{
+        plugins:{legend:{display:false}},
+        scales:{
+          x:{grid:{color:'rgba(255,255,255,0.03)'},ticks:{color:'#94A3B8',font:{size:11}}},
+          y:{min:0,max:5,grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#94A3B8',font:{size:11}}}
+        }
+      }
+    });
+  }
+
+  /* All-time stats */
+  const st = await api('/api/owner/stats/alltime');
+  if (st) {
+    document.getElementById('at-orders').textContent  = st.orders  || '—';
+    document.getElementById('at-revenue').textContent = st.revenue ? '₹'+st.revenue : '—';
+    document.getElementById('at-rating').textContent  = st.avg_rating > 0 ? st.avg_rating+'★' : '—';
+    document.getElementById('at-feedback').textContent= st.feedbacks || '—';
+  }
+}
+  /* ── Feedbacks (BUG 4) ────────────────────────────────────── */
+  async function loadFeedbacks() {
+    const fbs = await api('/api/owner/feedbacks');
+    const tab  = document.getElementById('tab-feedbacks');
+    if (!tab) return;
+    if (!fbs || !fbs.length) {
+      tab.innerHTML = '<p class="text-slate-600 text-sm">No feedback yet.</p>';
+      return;
+    }
+    const stars = n => '★'.repeat(Math.max(0,n)) + '☆'.repeat(Math.max(0,5-n));
+    tab.innerHTML = `
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-amber-400 font-semibold">⭐ Customer Feedback</h2>
+        <a href="/api/owner/feedbacks/export"
+           class="bg-amber-500 hover:bg-amber-400 text-black font-semibold text-sm px-4 py-1.5 rounded-xl transition-all">
+          ⬇ Export CSV
+        </a>
+      </div>
+      <div class="space-y-3">
+        ${fbs.map(fb => `
+          <div class="card p-4">
+            <div class="flex items-center gap-3 mb-1">
+              <span class="text-amber-400 text-lg font-bold tracking-widest">${stars(fb.stars||0)}</span>
+              <span class="text-slate-300 text-sm font-semibold">${fb.stars||0}/5</span>
+              <span class="text-slate-400 text-sm">Table ${fb.table_num||'?'}</span>
+              <span class="text-slate-600 text-xs ml-auto">Order #${fb.order_id||'?'} · ${(fb.created_at||'').slice(0,10)}</span>
+            </div>
+            ${fb.comment ? `<p class="text-slate-300 text-sm italic">"${fb.comment}"</p>` : '<p class="text-slate-600 text-xs">No comment left</p>'}
+          </div>`).join('')}
+      </div>`;
+  }
+</script>
+</body>
+</html>
